@@ -1,4 +1,4 @@
-=== Safepay for WooCommerce ===
+<!-- === Safepay for WooCommerce ===
 Contributors: safepay
 Tags: safepay, payments, pakistan, woocommerce, ecommerce
 Requires at least: 3.9.2
@@ -75,4 +75,4 @@ Visit our [knowledge center](https://safepay.helpscoutdocs.com/) for detailed gu
 
 == Screenshots ==
 1. Configuring your plugin
-2. What a customer sees on checkout.
+2. What a customer sees on checkout. -->
