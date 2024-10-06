@@ -28,8 +28,8 @@ class SafepayPaymentGateway {
      */
     public static function safepay_init() {
         add_action('plugins_loaded', array(__CLASS__, 'safepay_includes'), 0);
-        add_filter('woocommerce_payment_gateways', array(__CLASS__, 'safepay_add_gateway'));
         add_action('woocommerce_blocks_loaded', array(__CLASS__, 'safepay_woocommerce_block_support'));
+        add_filter('woocommerce_payment_gateways', array(__CLASS__, 'safepay_add_gateway'));
         add_action('safepay_wc_process_payment_order_status', array(__CLASS__, 'safepay_pending_order_status'));
         add_action('init', 'safepay_register_order_status');
         add_filter('wc_order_statuses', 'safepay_custom_order_status');
@@ -44,7 +44,7 @@ class SafepayPaymentGateway {
         $hide_for_non_admin_users = isset($options['hide_for_non_admin_users']) ? $options['hide_for_non_admin_users'] : 'no';
 
         if (( 'yes' === $hide_for_non_admin_users && current_user_can('manage_options')) || 'no' === $hide_for_non_admin_users) {
-            $gateways[] = 'Safepay_WC_Gateway';
+            $gateways[] = 'SafepayGateway';
         }
 
         return $gateways;
@@ -55,9 +55,10 @@ class SafepayPaymentGateway {
      */
     public static function safepay_includes() {
         if (class_exists('WC_Payment_Gateway')) {
-            require_once 'includes/safepay-gateway.php';
-            // require_once 'includes/class-safepay-wc-request.php';
-            // require_once 'includes/class-safepay-wc-response.php';
+            require_once 'includes/enums/SafepayEndpoints.php';
+            require_once 'includes/traits/SafepayGatewayProperties.php';
+            require_once 'includes/SafepayGateway.php';
+            require_once 'includes/SafePayApiHandler.php';
         }
     }
 
@@ -77,6 +78,18 @@ class SafepayPaymentGateway {
      */
     public static function safepay_plugin_abspath() {
         return trailingslashit(plugin_dir_path(__FILE__));
+    }
+
+    public static function safepay_woocommerce_block_support() {
+        if (class_exists('Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
+            require_once 'includes/blocks/class-safepay-wc-payments-blocks.php';
+            add_action(
+                'woocommerce_blocks_payment_method_type_registration',
+                function (Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry) {
+                    $payment_method_registry->register(new Safepay_WC_Gateway_Blocks_Support());
+                }
+            );
+        }
     }
 
 }

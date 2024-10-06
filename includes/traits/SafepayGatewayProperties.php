@@ -1,4 +1,7 @@
 <?php
+if (!defined('ABSPATH')) {
+    exit; // Exit if accessed directly
+}
 
 trait SafepayGatewayProperties
 {
@@ -18,6 +21,10 @@ trait SafepayGatewayProperties
     public $appEnv;
     public $siteUrl;
 
+    public function exampleMethod() {
+        // Custom method logic
+        echo "hello world";
+    }
     /**
      * Initialize Safepay gateway properties.
      */

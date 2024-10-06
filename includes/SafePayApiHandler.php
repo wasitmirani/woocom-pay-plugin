@@ -24,7 +24,7 @@ class SafepayAPIHandler {
         }
     
         return array(
-            'method' => $data->method ?? 'post',
+            'method' => $data->method ?? 'POST',
             'headers' => array(
                 'Content-Type' => 'application/json',
                 'X-SFPY-MERCHANT-SECRET' => $data->securedKey,
@@ -39,54 +39,37 @@ class SafepayAPIHandler {
         if (empty($params['source']) || empty($params['order_id'])) {
             return new WP_Error('invalid_params', 'Source or Order ID missing', array('status' => 400));
         }
-        // Sanitize the input data
-        $source = sanitize_text_field($params['source']);
-        $order_id = sanitize_text_field($params['order_id']);
-        // Build the payload
-        $payload_body = json_encode([
-            'data' => [
-                "source" => (string) $source,
-                "order_id" => (string) $order_id,
-            ]
-        ]);
-        // Handle JSON encoding errors
-        if ($payload_body === false) {
-            return new WP_Error('json_error', 'Failed to encode JSON', array('status' => 500));
-        }
-
+  
         // Create the metadata payload
         $meta_payload = array(
             'method'  => 'POST',
             'headers' => array(
                 'Content-Type' => 'application/json',
-                'X-SFPY-MERCHANT-SECRET' => sanitize_text_field($securedKey),
+                'X-SFPY-MERCHANT-SECRET' => $securedKey,
             ),
-            'body'=> $payload_body,
+            'body'=> json_encode($params),
         );
 
         return $meta_payload;
     }
     function make_transaction_request($baseURL, $args)
     {
-        // Build the full transaction endpoint URL and escape it
-        $transactionEndpoint = esc_url_raw($baseURL . SafepayEndpoints::TRANSACTION_ENDPOINT);
-
         // Perform the POST request
-        return wp_remote_post($transactionEndpoint, $args);
+        return wp_remote_post(esc_url_raw($baseURL . SafepayEndpoints::TRANSACTION_ENDPOINT->value), $args);
     }
     public  function fetchToken($securedKey,$params,$baseURL){
         $payload = (object) [
-            'method'=>'post',
+            'method'=>'POST',
             'securedKey' => $securedKey,
-            'params'=>$params,
+            'params'=> $params,
         ];
         $args = self::buildRequestParams($payload);
+        
+        
+        $metaDataEndpoint = esc_url_raw($baseURL.SafepayEndpoints::META_DATA_ENDPOINT->value);
 
-        $tokenEndpoint = esc_url_raw($baseURL.SafepayEndpoints::TOKEN_ENDPOINT->value);
-        $metaDataEndpoint = esc_url_raw($baseURL.SafepayEndpoints::META_DATA_ENDPOINT);
-     
-        $responseData = wp_remote_post($tokenEndpoint, $args);
-
+        $responseData = wp_remote_post(esc_url_raw($baseURL.SafepayEndpoints::TOKEN_ENDPOINT->value), $args);
+       
         if (is_wp_error($responseData)) {
             return array(false, $responseData->get_error_message());
         } else {
@@ -95,11 +78,14 @@ class SafepayAPIHandler {
         }
         $response = self::make_transaction_request($baseURL, $args);
 
+    
         if (is_wp_error($response)) {
            
             return array(false, $response->get_error_message());
         } else {
             $result = json_decode($response['body'], true);
+       
+
             $code = $response['response']['code'];
 
             if ($code === 201) {
@@ -121,10 +107,6 @@ class SafepayAPIHandler {
         // Perform the POST request
         $response = wp_remote_post($endpointUrl, $meta_payload);
     
-        // Optionally process the response body
-        $responseData = wp_remote_retrieve_body($response);
-       
-    
-        return json_decode($responseData['body'], true);  // Optionally decode if JSON response
+        return json_decode($response['body'], true);  // Optionally decode if JSON response
     }
 }
