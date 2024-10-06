@@ -241,35 +241,18 @@ class SafepayGateway extends WC_Payment_Gateway
 
     public function process_payment($order_id) {
        
-           ob_start(); $order = wc_get_order($order_id);
-
-     
-
-
-        $order->payment_complete();
-
-        // Remove cart
-        WC()->cart->empty_cart();
-        ob_end_flush();
-        return array(
-            'result' => 'success',
-            'redirect' => $this->get_return_url($order)
-        );
-    }
-  
-    public function process_order_place()
-    {
-        
-        ob_start();
-        $OrderId = absint(get_query_var('order-received'));
-        // Get the order object
-        $order = wc_get_order($OrderId);
+        ob_start(); 
+        $order = wc_get_order($order_id);
         // Get the payment method
         $payment_method ="";
         if($order)
            $payment_method = $order->get_payment_method() ;
 
-        if (is_order_received_page() && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
+
+        error_log("payment_method: $payment_method");
+
+
+        if ($order && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
             $safepayApiHandler = new SafepayAPIHandler();
           
              // Prepare the arguments for the API call
@@ -278,7 +261,7 @@ class SafepayGateway extends WC_Payment_Gateway
              $args["mode"] = "payment";
              $args["currency"] = get_woocommerce_currency() ?? 'PKR';
              $args["merchant_api_key"] = $this->merchantId;
-             $args['order_id'] = $OrderId;
+             $args['order_id'] = $order_id;
              $args['source'] = 'woocommerce';
      
              // Get the base URL for the environment
@@ -286,7 +269,6 @@ class SafepayGateway extends WC_Payment_Gateway
      
              // Call the API to get the token
              list($success, $userToken, $result) =   $safepayApiHandler->fetchToken( $this->securedKey,$args,$baseURL);
-            print_r($result);
             // Get the tracker token from the result
             $tracker = $result['data']['tracker']['token'];
     
@@ -308,21 +290,28 @@ class SafepayGateway extends WC_Payment_Gateway
             $url = $this->get_env_url();
     
             // Check if on the order received page and the payment method is 'safepay_gateway'
-            if (is_order_received_page() && ('safepay_gateway' == $payment_method)) {
+            if (('safepay_gateway' == $payment_method)) {
                 // If API call was successful
                 if (isset($success) && $success) {
+                    error_log("Request  tokenURL: " . print_r($result, true));
+
                     // Get the token from the result
                     $token = $result['token'] ?? null;
                     // If token is present, stop further execution
-                    if ($token)
-                        return die();
+                    // if ($token)
+                    //     return die();
                     // Prepare the redirect URL with necessary parameters
-                    $requestRedirectUrl = $url . "/embedded/?tbt=$userToken&tracker=$tracker&order_id=$OrderId&environment=$this->appEnv&source=woocommerce&redirect_url=$successUrl&cancel_url=$failUrl";
-    
+                    $requestRedirectUrl = $url . "/embedded/?tbt=$userToken&tracker=$tracker&order_id=$order_id&environment=$this->appEnv&source=woocommerce&redirect_url=$successUrl&cancel_url=$failUrl";
+                    error_log("requestRedirectUrl  tokenURL: " . $requestRedirectUrl);
+
                     // Redirect to the prepared URL
                     wp_redirect($requestRedirectUrl);
                     ob_end_flush();
-                    die();
+                    // die();
+                    return array(
+                        'result' => 'success',
+                        'redirect' => $requestRedirectUrl,
+                    );
                     
                 } else {
                     // Log API call failure if WP_DEBUG is enabled
@@ -334,10 +323,104 @@ class SafepayGateway extends WC_Payment_Gateway
                     die();
                 }
             }
+        }
+     
+
+
+        $order->payment_complete();
+
+        // Remove cart
+        WC()->cart->empty_cart();
+        ob_end_flush();
+        wp_redirect($this->get_return_url($order));
+
+        return array(
+            'result' => 'success',
+            'redirect' => $this->get_return_url($order)
+        );
+    }
+  
+    public function process_order_place()
+    {
+        
+        ob_start();
+        $OrderId = absint(get_query_var('order-received'));
+        // Get the order object
+        $order = wc_get_order($OrderId);
+        // Get the payment method
+        $payment_method ="";
+        if($order)
+           $payment_method = $order->get_payment_method() ;
+
+        // if (is_order_received_page() && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
+        //     $safepayApiHandler = new SafepayAPIHandler();
+          
+        //      // Prepare the arguments for the API call
+        //      $args["amount"] = (int) ($order->get_total() * 100) ?? 0;
+        //      $args["intent"] = "CYBERSOURCE";
+        //      $args["mode"] = "payment";
+        //      $args["currency"] = get_woocommerce_currency() ?? 'PKR';
+        //      $args["merchant_api_key"] = $this->merchantId;
+        //      $args['order_id'] = $OrderId;
+        //      $args['source'] = 'woocommerce';
+     
+        //      // Get the base URL for the environment
+        //      $baseURL = $this->get_env_url();
+     
+        //      // Call the API to get the token
+        //      list($success, $userToken, $result) =   $safepayApiHandler->fetchToken( $this->securedKey,$args,$baseURL);
+        //     print_r($result);
+        //     // Get the tracker token from the result
+        //     $tracker = $result['data']['tracker']['token'];
+    
+      
+        //     // Get the site URL
+        //     $this->siteUrl = get_site_url();
+        //     // Extract the user token from the result
+        //     $userToken = $userToken['data'];
+        //     // Prepare the URLs for success, failure, and backend callback
+        //     $site_url = sprintf("%s/index.php/wp-json/safepay/v1/safepay-transaction-success/%s?", get_site_url(), $order->get_id());
+        //     $successUrl = $site_url . "&order_id=" . $order->get_id() . '&ispaid=true';
+        //     $failUrl =  sprintf("%s/index.php/wp-json/safepay/v1/safepay-transaction-failed/%s?", get_site_url(), $order->get_id()) . "&order_id=" . $order->get_id() . '&ispaid=false';
+        //     $backend_callback = $site_url . "order_id=" . $order->get_id();
+    
+        //     // Get the current date and time
+        //     $orderDate = date('Y-m-d H:i:s', time());
+    
+        //     // Get the base URL for the redirect
+        //     $url = $this->get_env_url();
+    
+        //     // Check if on the order received page and the payment method is 'safepay_gateway'
+        //     if (is_order_received_page() && ('safepay_gateway' == $payment_method)) {
+        //         // If API call was successful
+        //         if (isset($success) && $success) {
+        //             // Get the token from the result
+        //             $token = $result['token'] ?? null;
+        //             // If token is present, stop further execution
+        //             if ($token)
+        //                 return die();
+        //             // Prepare the redirect URL with necessary parameters
+        //             $requestRedirectUrl = $url . "/embedded/?tbt=$userToken&tracker=$tracker&order_id=$OrderId&environment=$this->appEnv&source=woocommerce&redirect_url=$successUrl&cancel_url=$failUrl";
+    
+        //             // Redirect to the prepared URL
+        //             wp_redirect($requestRedirectUrl);
+        //             ob_end_flush();
+        //             die();
+                    
+        //         } else {
+        //             // Log API call failure if WP_DEBUG is enabled
+        //             if (WP_DEBUG) {
+        //                 error_log("API call failed: " . $result);
+        //             }
+        //             wp_redirect(get_site_url());
+        //             ob_end_flush();
+        //             die();
+        //         }
+        //     }
  
 
         
-        }
+        // }
     }
 
 
