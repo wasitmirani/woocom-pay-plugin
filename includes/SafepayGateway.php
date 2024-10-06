@@ -92,7 +92,7 @@ class SafepayGateway extends WC_Payment_Gateway
         // add_action('woocommerce_order_status_changed', [$this, 'safepay_custom_update_order_status'], 10, 3);
         add_action('woocommerce_receipt_' . $this->id, [$this, 'safepay_process_order_request']);
         add_action('woocommerce_update_options_payment_gateways_' . $this->id, [$this, 'process_admin_options']);
-        add_action('woocommerce_api_safepay_request_redirect', [$this, 'safepay_gateway_request']);
+        // add_action('woocommerce_api_safepay_request_redirect', [$this, 'safepay_gateway_request']);
         // add_action('woocommerce_api_safepay_gatewaycallback', [$this, 'safepay_payment_notification']);
         add_action('wp', [$this, 'process_order_place']);
     }
@@ -264,8 +264,12 @@ class SafepayGateway extends WC_Payment_Gateway
         $OrderId = absint(get_query_var('order-received'));
         // Get the order object
         $order = wc_get_order($OrderId);
+        // Get the payment method
+        $payment_method ="";
+        if($order)
+           $payment_method = $order->get_payment_method() ;
 
-        if (get_query_var('order-received') && $order->status != 'failed') {
+        if (is_order_received_page() && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
             $safepayApiHandler = new SafepayAPIHandler();
           
              // Prepare the arguments for the API call
@@ -286,8 +290,7 @@ class SafepayGateway extends WC_Payment_Gateway
             // Get the tracker token from the result
             $tracker = $result['data']['tracker']['token'];
     
-            // Get the payment method
-            $payment_method = $order->get_payment_method();
+      
             // Get the site URL
             $this->siteUrl = get_site_url();
             // Extract the user token from the result
@@ -462,39 +465,6 @@ class SafepayGateway extends WC_Payment_Gateway
         );
     }
 
-    private function enqueue_scripts()
-    {
-        wp_enqueue_script($this->id . time(), plugin_dir_url(__FILE__) . '../assets/js/safepay-payment-form-woocommerce.js', array('jquery'), time(), true);
-    }
-    public function safepay_gateway_request()
-    {
-        ob_start();
-        $processingOrderId = isset($_GET['processing_order_id']) ? $_GET['processing_order_id'] : null;
-
-        if (!$processingOrderId) {
-            wp_redirect($this->siteUrl);
-            die();
-        }
-
-        $order = wc_get_order($processingOrderId);
-
-
-        header('HTTP/1.1 200 OK');
-        header('Content-type: text/html');
-        $gatewayRequest = new WC_safepay_Request($this, $processingOrderId);
-        $gatewayRequest->responseCallBackUrl = 'safepay_gatewaycallback';
-        $this->enqueue_scripts();
-
-        $htmlParametersForm = $gatewayRequest->generate_SafePay_form();
-
-
-        /**
-         * Render HTML containing SafePay Payment Form
-         */
-        ob_end_flush();
-        die();
-    }
- 
 
 
 }
