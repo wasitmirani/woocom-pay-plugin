@@ -31,8 +31,6 @@ class SafepayPaymentGateway {
         add_action('woocommerce_blocks_loaded', array(__CLASS__, 'safepay_woocommerce_block_support'));
         add_filter('woocommerce_payment_gateways', array(__CLASS__, 'safepay_add_gateway'));
         add_action('safepay_wc_process_payment_order_status', array(__CLASS__, 'safepay_pending_order_status'));
-        add_action('init', 'safepay_register_order_status');
-        add_filter('wc_order_statuses', 'safepay_custom_order_status');
     }
 
     /**
@@ -93,21 +91,6 @@ class SafepayPaymentGateway {
 
 }
 
-function safepay_register_order_status() {
-    register_post_status('wc-payment-received', array(
-        'label'                     => 'Payment Received',
-        'public'                    => true,
-        'exclude_from_search'       => false,
-        'show_in_admin_all_list'    => true,
-        'show_in_admin_status_list' => true,
-        'label_count'               => _n_noop('Payment Received <span class="count">(%s)</span>', 'Payment Received <span class="count">(%s)</span>')
-    ));
-}
-
-function safepay_custom_order_status($order_statuses) {
-    $order_statuses['wc-payment-received'] = 'Payment Received';
-    return $order_statuses;
-}
 
 // Initialize Safepay Plugin
 SafepayPaymentGateway::safepay_init();
