@@ -2,7 +2,7 @@
 
 use Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType;
 
-final class Safepay_WC_Gateway_Blocks_Support extends AbstractPaymentMethodType
+final class SafepayGatewayBlocksSupport extends AbstractPaymentMethodType
 {
 
 	/**

@@ -82,11 +82,11 @@ class SafepayPaymentGateway {
 
     public static function safepay_woocommerce_block_support() {
         if (class_exists('Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
-            require_once 'includes/blocks/class-safepay-wc-payments-blocks.php';
+            require_once 'includes/blocks/SafepayPaymentsBlocks.php';
             add_action(
                 'woocommerce_blocks_payment_method_type_registration',
                 function (Automattic\WooCommerce\Blocks\Payments\PaymentMethodRegistry $payment_method_registry) {
-                    $payment_method_registry->register(new Safepay_WC_Gateway_Blocks_Support());
+                    $payment_method_registry->register(new SafepayGatewayBlocksSupport());
                 }
             );
         }
