@@ -13,8 +13,7 @@ class SafepayGateway extends WC_Payment_Gateway
     public $icon;
     public $has_fields;
     public $supports;
-    public $method_title;
-    public $method_description;
+    public $method_title;public $method_description;
     public $title;
     public $description;
     public $instructions;
@@ -26,11 +25,7 @@ class SafepayGateway extends WC_Payment_Gateway
     public $appEnv;
     public $siteUrl;
 
-    public function exampleMethod()
-    {
-        // Custom method logic
-        echo "hello world";
-    }
+  
     /**
      * Initialize Safepay gateway properties.
      */
@@ -303,6 +298,7 @@ class SafepayGateway extends WC_Payment_Gateway
         $payment_method = "";
         if ($order)
             $payment_method = $order->get_payment_method();
+        
         if ($order && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
 
             // Redirect to the prepared URL
@@ -311,7 +307,7 @@ class SafepayGateway extends WC_Payment_Gateway
             $order->save(); // Save the order
             wp_redirect($requestRedirectUrl);
             ob_end_flush();
-            // die();
+   
             return array(
                 'result' => 'success',
                 'redirect' => $requestRedirectUrl,
@@ -320,7 +316,7 @@ class SafepayGateway extends WC_Payment_Gateway
 
             wp_redirect(get_site_url());
             ob_end_flush();
-            // die();
+ 
             return array(
                 'result' => 'failed',
                 'redirect' => $this->get_return_url($order),
