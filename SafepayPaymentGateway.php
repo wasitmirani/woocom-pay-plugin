@@ -56,7 +56,6 @@ class SafepayPaymentGateway {
     public static function safepay_includes() {
         if (class_exists('WC_Payment_Gateway')) {
             require_once 'includes/enums/SafepayEndpoints.php';
-            require_once 'includes/traits/SafepayGatewayProperties.php';
             require_once 'includes/SafepayGateway.php';
             require_once 'includes/SafePayApiHandler.php';
         }
