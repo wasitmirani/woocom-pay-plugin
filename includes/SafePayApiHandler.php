@@ -47,7 +47,12 @@ class SafepayAPIHandler {
                 'Content-Type' => 'application/json',
                 'X-SFPY-MERCHANT-SECRET' => $securedKey,
             ),
-            'body'=> json_encode($params),
+            'body'=> json_encode([
+                'data' => [
+                    "source" => (string) $params['source'],
+                    "order_id" => (string) $params['order_id'],
+                ]
+            ]),
         );
 
         return $meta_payload;
