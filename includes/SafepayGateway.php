@@ -13,7 +13,8 @@ class SafepayGateway extends WC_Payment_Gateway
     public $icon;
     public $has_fields;
     public $supports;
-    public $method_title;public $method_description;
+    public $method_title;
+    public $method_description;
     public $title;
     public $description;
     public $instructions;
@@ -25,7 +26,7 @@ class SafepayGateway extends WC_Payment_Gateway
     public $appEnv;
     public $siteUrl;
 
-  
+
     /**
      * Initialize Safepay gateway properties.
      */
@@ -162,14 +163,38 @@ class SafepayGateway extends WC_Payment_Gateway
         );
     }
 
+    public function validate_webhook($parameters)
+    {
+        $merchant_api_key =$parameters['merchant_api_key'] ?? null;
+        // Ensure the signature header exists
+        if (!isset($merchant_api_key)) {
+            return false;
+        }
 
+        $merchantApiKey = $this->merchantApiKey;
+        // Compare signatures
+        if (hash_equals($merchant_api_key, $merchantApiKey)) {
+            return true;
+        }
 
-    function safepay_handle_webhook($request)
+        // Optionally log signature mismatches for debugging
+        error_log('Webhook signature validation failed.');
+
+        return false;
+    }
+
+     function safepay_handle_webhook($request)
     {
         ob_start();
 
         // Get the body data from the request
         $parameters = $request->get_json_params();
+        // Validate the webhook signature
+        if (!$this->validate_webhook($parameters)) {
+            return new WP_Error('invalid_signature', 'Invalid signature', array('status' => 403));
+        }
+
+        
 
         // Validate and process the body data
         if (empty($parameters) || !isset($parameters['data'])) {
@@ -195,7 +220,6 @@ class SafepayGateway extends WC_Payment_Gateway
         if ($state === 'TRACKER_ENDED') {
             $order_note_message = 'Payment has been received successfully. Transaction reference ID: ' . $tracker;
             $order->payment_complete();
-     
         } else {
             $order->update_status('failed');
             $order_note_message = 'Payment has failed. Transaction reference ID: ' . $tracker;
@@ -225,7 +249,7 @@ class SafepayGateway extends WC_Payment_Gateway
             "source" => 'woocommerce'
         ];
     }
-    
+
     public function prepareRedirectUrl($order, $userToken, $tracker)
     {
         // Store site URL and order ID to avoid multiple calls
@@ -243,8 +267,8 @@ class SafepayGateway extends WC_Payment_Gateway
             esc_html($tracker),
             esc_html($order_id),
             esc_html($this->appEnv),
-            urlencode($redirect_url), 
-            urlencode($cancel_url)  
+            urlencode($redirect_url),
+            urlencode($cancel_url)
         );
     }
     public function generateSafepayRedirect($order)
@@ -278,31 +302,22 @@ class SafepayGateway extends WC_Payment_Gateway
         $payment_method = "";
         if ($order)
             $payment_method = $order->get_payment_method();
-        
+
         if ($order && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
             // Redirect to the prepared URL
             $requestRedirectUrl = self::generateSafepayRedirect($order);
             $order->update_status('pending', 'Order is awaiting payment'); // Set the status to "pending payment"
-            $order->save(); 
-            wp_redirect($requestRedirectUrl);
+            $order->save();
             ob_end_flush();
             WC()->cart->empty_cart();
             return array(
                 'result' => 'success',
                 'redirect' => $requestRedirectUrl,
             );
-        } else {
-
-            wp_redirect(get_site_url());
-            ob_end_flush();
-            WC()->cart->empty_cart();
-            return array(
-                'result' => 'failed',
-                'redirect' => $this->get_return_url($order),
-            );
         }
 
         WC()->cart->empty_cart();
+        ob_end_flush();
         return array(
             'result' => 'success',
             'redirect' => $this->get_return_url($order)
@@ -379,7 +394,7 @@ class SafepayGateway extends WC_Payment_Gateway
                     . '<br />' .
 
                     // translators: Step 2 of the instructions for 'webhook shared secrets' on settings page. Includes webhook URL.
-                    sprintf(__('2. Click \'Add an endpoint\' and paste the following URL: %s', 'Safepay'), add_query_arg('/wp-json/safepay/v1/order-webhook', '', get_site_url()))
+                    sprintf(__('2. Click \'Add an endpoint\' and paste the following URL: %s', 'Safepay'), add_query_arg('/wp-json/safepay/v1/order-webhook?', '', get_site_url()))
 
                     . '<br />' .
 
@@ -394,7 +409,7 @@ class SafepayGateway extends WC_Payment_Gateway
                 'desc_tip' => false,
                 'default' => sprintf("%s/wp-json/safepay/v1/order-webhook", get_site_url()),
             ),
-          
+
         );
     }
 }
