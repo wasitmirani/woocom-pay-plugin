@@ -311,11 +311,14 @@ class SafepayGateway extends WC_Payment_Gateway
             $order->save();
             ob_end_flush();
             WC()->cart->empty_cart();
+            WC()->session->destroy_session();
             return array(
                 'result' => 'success',
                 'redirect' => $requestRedirectUrl,
             );
         }
+
+        WC()->session->destroy_session();
     }
 
     public function init_form_fields()
