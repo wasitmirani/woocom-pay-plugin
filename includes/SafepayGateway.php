@@ -262,7 +262,7 @@ class SafepayGateway extends WC_Payment_Gateway
         // Construct the request redirect URL
         return sprintf(
             '%s/embedded/?tbt=%s&tracker=%s&order_id=%s&environment=%s&source=woocommerce&redirect_url=%s&cancel_url=%s',
-            esc_url($this->get_env_url()),
+            esc_url($this->appEnv == 'production' ? SafepayEndpoints::PRODUCTION_URL->value : $this->get_env_url()),
             esc_html($userToken),
             esc_html($tracker),
             esc_html($order_id),
@@ -315,13 +315,6 @@ class SafepayGateway extends WC_Payment_Gateway
                 'redirect' => $requestRedirectUrl,
             );
         }
-
-        WC()->cart->empty_cart();
-        ob_end_flush();
-        return array(
-            'result' => 'success',
-            'redirect' => $this->get_return_url($order)
-        );
     }
 
     public function init_form_fields()
