@@ -60,7 +60,7 @@ class SafepayAPIHandler {
     function make_transaction_request($baseURL, $args)
     {
         // Perform the POST request
-        return wp_remote_post(esc_url_raw($baseURL . SafepayEndpoints::TRANSACTION_ENDPOINT->value), $args);
+        return wp_remote_post(esc_url_raw($baseURL . SafepayEndpoints::TRANSACTION_ENDPOINT->value), array_merge($args, ['timeout' => 30]));
     }
     public  function fetchToken($securedKey,$params,$baseURL){
         $payload = (object) [
@@ -73,10 +73,10 @@ class SafepayAPIHandler {
         
         $metaDataEndpoint = esc_url_raw($baseURL.SafepayEndpoints::META_DATA_ENDPOINT->value);
 
-        $responseData = wp_remote_post(esc_url_raw($baseURL.SafepayEndpoints::TOKEN_ENDPOINT->value), $args);
+        $responseData = wp_remote_post(esc_url_raw($baseURL.SafepayEndpoints::TOKEN_ENDPOINT->value), array_merge($args, ['timeout' => 30]));
        
         if (is_wp_error($responseData)) {
-            return array(false, $responseData->get_error_message());
+            return array(false, $responseData->get_error_message(),null);
         } else {
             $userToken = json_decode($responseData['body'], true);
             $code = $responseData['response']['code'];
@@ -110,7 +110,7 @@ class SafepayAPIHandler {
         $sanitizedToken = sanitize_text_field($trackerToken);
         $endpointUrl = esc_url_raw($metaDataEndpoint . '/' . $sanitizedToken . '/metadata');
         // Perform the POST request
-        $response = wp_remote_post($endpointUrl, $meta_payload);
+        $response = wp_remote_post($endpointUrl, array_merge($meta_payload, ['timeout' => 30]));
     
         return json_decode($response['body'], true);  // Optionally decode if JSON response
     }
