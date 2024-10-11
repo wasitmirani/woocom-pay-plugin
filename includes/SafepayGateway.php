@@ -289,7 +289,7 @@ class SafepayGateway extends WC_Payment_Gateway
             return self::prepareRedirectUrl($order, $userToken, $tracker);
         } else {
             // Handle API failure or missing tracker token
-            wp_die('Error: Unable to process payment, tracker token missing.');
+            wp_die('Error: Your session has expired. Please refresh the page and try again');
             return null;
         }
     }
