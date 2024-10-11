@@ -296,7 +296,7 @@ class SafepayGateway extends WC_Payment_Gateway
     public function process_payment($order_id)
     {
 
-        ob_start();
+   
         $order = wc_get_order($order_id);
         // Get the payment method
         $payment_method = "";
@@ -304,6 +304,7 @@ class SafepayGateway extends WC_Payment_Gateway
             $payment_method = $order->get_payment_method();
 
         if ($order && ('safepay_gateway' == $payment_method) && $order->status != 'failed') {
+            ob_start();
             // Redirect to the prepared URL
             $requestRedirectUrl = self::generateSafepayRedirect($order);
             $order->update_status('pending', 'Order is awaiting payment'); // Set the status to "pending payment"
