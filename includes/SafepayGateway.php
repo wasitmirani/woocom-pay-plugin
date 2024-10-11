@@ -309,9 +309,10 @@ class SafepayGateway extends WC_Payment_Gateway
             $requestRedirectUrl = self::generateSafepayRedirect($order);
             $order->update_status('pending', 'Order is awaiting payment'); // Set the status to "pending payment"
             $order->save();
-            ob_end_flush();
+        
             WC()->cart->empty_cart();
             WC()->session->destroy_session();
+            ob_end_flush();
             return array(
                 'result' => 'success',
                 'redirect' => $requestRedirectUrl,
