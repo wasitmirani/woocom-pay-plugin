@@ -29,7 +29,7 @@ final class SafepayGatewayBlocksSupport extends AbstractPaymentMethodType
 		$gateways = WC()->payment_gateways->payment_gateways();
 		$this->gateway = $gateways[$this->name];
 
-		$plugin_image_url = plugins_url('/assets/image/logo.svg', __FILE__);
+		$plugin_image_url = SafepayPaymentGateway::safepay_plugin_url() . '/assets/images/logo.svg';
 
 		$this->settings = [
 			'title' => $this->gateway->get_option('title'),
@@ -91,7 +91,8 @@ final class SafepayGatewayBlocksSupport extends AbstractPaymentMethodType
 	 */
 	public function get_payment_method_data()
 	{
-		$plugin_image_url = plugins_url("/assets/images/logo.svg", __FILE__);
+
+		$plugin_image_url = SafepayPaymentGateway::safepay_plugin_url() . '/assets/images/logo.svg';
 		return [
 			'title' => $this->get_setting('title'),
 			'description' => $this->get_setting('description'),
