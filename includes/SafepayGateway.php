@@ -396,7 +396,7 @@ class SafepayGateway extends WC_Payment_Gateway
                 'label' => __('Title at checkout', 'woocommerce-safepay-gateway'),
                 'description' => __('Title at checkout', 'woocommerce-safepay-gateway'),
                 'desc_tip' => true,
-                'default' => 'Pay using your credit or debit card. Safepay supports all Visa and MasterCard credit and debit cards'
+                'default' => 'Safepay checkout'
             ),
             'description' => array(
                 'title' => __('Description', 'woocommerce-safepay-gateway'),
@@ -404,7 +404,7 @@ class SafepayGateway extends WC_Payment_Gateway
                 'label' => __('Description', 'woocommerce-safepay-gateway'),
                 'description' => __('Description', 'woocommerce-safepay-gateway'),
                 'desc_tip' => true,
-                'default' => 'Pay via Credit / Debit Cards, Bank Accounts / Wallets'
+                'default' => 'Pay using your credit or debit card. Safepay supports all Visa and MasterCard credit and debit cards'
             ),
             'merchant_api_key' => array(
                 'title' => __('Merchant API Key', 'woocommerce-safepay-gateway'),
