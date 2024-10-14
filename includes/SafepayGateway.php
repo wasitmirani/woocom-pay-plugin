@@ -165,64 +165,34 @@ class SafepayGateway extends WC_Payment_Gateway
         );
     }
 
-    // public function validate_webhook($payload)
-    // {
-    //     // Ensure the signature header exists
-    //     if (!isset($_SERVER['HTTP_X_SFPY_SIGNATURE'])) {
-    //         error_log('Missing signature in request.');
-    //         return false;
-    //     }
-
-    //     // Decode the payload and handle possible errors
-    //     $data = json_decode($payload, true);
-    //     if (json_last_error() !== JSON_ERROR_NONE) {
-    //         error_log('Invalid JSON payload: ' . json_last_error_msg());
-    //         return false;  // Payload is invalid JSON
-    //     }
-
-    //     // Extract the hook data and the signature
-    //     $hook_data = $data['data'] ?? null;
-    //     $signature = $_SERVER['HTTP_X_SFPY_SIGNATURE'];
-    //     $secret = $this->merchantWebhookSecretKey;  // This now uses your secured key
-
-    //     // Make sure $hook_data is not null
-    //     if (is_null($hook_data)) {
-    //         error_log('Missing data in payload.');
-    //         return false;
-    //     }
-
-    //     // Create a signature for comparison using the secret
-    //     $generated_signature = hash_hmac('sha512', json_encode($hook_data, JSON_UNESCAPED_SLASHES), $secret);
-
-    //     // Log the generated and received signatures
-    //     error_log('Generated signature: ' . $generated_signature);
-    //     error_log('Received signature: ' . $signature);
-
-    //     // Compare signatures
-    //     if (hash_equals($generated_signature, $signature)) {
-    //         return true;
-    //     }
-
-    //     error_log('Webhook signature validation failed.');
-    //     return false;
-    // }
-    public function validate_webhook($parameters)
+    public function validate_webhook($payload)
     {
-        $merchant_api_key =$parameters['merchant_api_key'] ?? null;
         // Ensure the signature header exists
-        if (!isset($merchant_api_key)) {
+        if (!isset($_SERVER['HTTP_X_SFPY_SIGNATURE'])) {
+            error_log('Missing signature in request.');
             return false;
         }
 
-        $merchantApiKey = $this->merchantApiKey;
+        // Extract the hook data and the signature
+        $hook_data = $payload ?? null;
+        $signature = $_SERVER['HTTP_X_SFPY_SIGNATURE'];
+        $secret = $this->merchantWebhookSecretKey;  // This now uses your secured key
+
+        // Make sure $hook_data is not null
+        if (is_null($hook_data)) {
+            error_log('Missing data in payload.');
+            return false;
+        }
+
+        // Create a signature for comparison using the secret
+        $generated_signature = hash_hmac('sha512', json_encode($hook_data, JSON_UNESCAPED_SLASHES), $secret);
+
         // Compare signatures
-        if (hash_equals($merchant_api_key, $merchantApiKey)) {
+        if (hash_equals($generated_signature, $signature)) {
             return true;
         }
 
-        // Optionally log signature mismatches for debugging
         error_log('Webhook signature validation failed.');
-
         return false;
     }
 
