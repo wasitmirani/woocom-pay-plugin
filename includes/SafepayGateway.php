@@ -21,6 +21,7 @@ class SafepayGateway extends WC_Payment_Gateway
     public $hide_for_non_admin_users;
     public $merchantApiKey;
     public $merchantSecret;
+    public $merchantWebhookSecretKey;
     public $storeId;
     public $baseUrl;
     public $appEnv;
@@ -56,6 +57,7 @@ class SafepayGateway extends WC_Payment_Gateway
 
         $this->merchantApiKey = $this->get_option('merchant_api_key');
         $this->merchantSecret = $this->get_option('merchant_secret_key');
+        $this->merchantWebhookSecretKey = $this->get_option('merchant_webhook_secret');
         $this->storeId = $this->get_option('store_id');
         $this->appEnv = $this->get_option('app_env');
         $this->siteUrl = get_site_url();
@@ -163,27 +165,49 @@ class SafepayGateway extends WC_Payment_Gateway
         );
     }
 
-    public function validate_webhook($parameters)
+    public function validate_webhook($payload)
     {
-        $merchant_api_key =$parameters['merchant_api_key'] ?? null;
         // Ensure the signature header exists
-        if (!isset($merchant_api_key)) {
+        if (!isset($_SERVER['HTTP_X_SFPY_SIGNATURE'])) {
+            error_log('Missing signature in request.');
             return false;
         }
 
-        $merchantApiKey = $this->merchantApiKey;
+        // Decode the payload and handle possible errors
+        $data = json_decode($payload, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            error_log('Invalid JSON payload: ' . json_last_error_msg());
+            return false;  // Payload is invalid JSON
+        }
+
+        // Extract the hook data and the signature
+        $hook_data = $data['data'] ?? null;
+        $signature = $_SERVER['HTTP_X_SFPY_SIGNATURE'];
+        $secret = $this->merchantWebhookSecretKey;  // This now uses your secured key
+
+        // Make sure $hook_data is not null
+        if (is_null($hook_data)) {
+            error_log('Missing data in payload.');
+            return false;
+        }
+
+        // Create a signature for comparison using the secret
+        $generated_signature = hash_hmac('sha512', json_encode($hook_data, JSON_UNESCAPED_SLASHES), $secret);
+
+        // Log the generated and received signatures
+        error_log('Generated signature: ' . $generated_signature);
+        error_log('Received signature: ' . $signature);
+
         // Compare signatures
-        if (hash_equals($merchant_api_key, $merchantApiKey)) {
+        if (hash_equals($generated_signature, $signature)) {
             return true;
         }
 
-        // Optionally log signature mismatches for debugging
         error_log('Webhook signature validation failed.');
-
         return false;
     }
 
-     function safepay_handle_webhook($request)
+    function safepay_handle_webhook($request)
     {
         ob_start();
 
@@ -194,7 +218,7 @@ class SafepayGateway extends WC_Payment_Gateway
             return new WP_Error('invalid_signature', 'Invalid signature', array('status' => 403));
         }
 
-        
+
 
         // Validate and process the body data
         if (empty($parameters) || !isset($parameters['data'])) {
@@ -296,7 +320,7 @@ class SafepayGateway extends WC_Payment_Gateway
     public function process_payment($order_id)
     {
 
-   
+
         $order = wc_get_order($order_id);
         // Get the payment method
         $payment_method = "";
@@ -309,7 +333,7 @@ class SafepayGateway extends WC_Payment_Gateway
             $requestRedirectUrl = self::generateSafepayRedirect($order);
             $order->update_status('pending', 'Order is awaiting payment'); // Set the status to "pending payment"
             $order->save();
-        
+
             WC()->cart->empty_cart();
             WC()->session->destroy_session();
             ob_end_flush();
@@ -353,7 +377,7 @@ class SafepayGateway extends WC_Payment_Gateway
                 'label' => __('Title at checkout', 'woocommerce-safepay-gateway'),
                 'description' => __('Title at checkout', 'woocommerce-safepay-gateway'),
                 'desc_tip' => true,
-                'default' => 'Safepay checkout'
+                'default' => 'Pay using your credit or debit card. Safepay supports all Visa and MasterCard credit and debit cards'
             ),
             'description' => array(
                 'title' => __('Description', 'woocommerce-safepay-gateway'),
@@ -378,6 +402,17 @@ class SafepayGateway extends WC_Payment_Gateway
                 'desc_tip' => true,
                 'default' => ''
             ),
+            "merchant_webhook_secret" => [
+                "title" => __("Merchant Webhook Secret Key", "woocommerce-safepay-gateway"),
+                "type" => "text",
+                "description" =>
+                // translators: Instructions for setting up 'webhook shared secrets' on settings page.
+                __(
+                    "Using merchant webhook secret keys allows Safepay to verify each payment. To get your live webhook key:"
+                ),
+
+                "desc_tip" => false
+            ],
             'production_webhook_secret' => array(
                 'title' => __('Webhook URL', 'woocommerce-safepay-gateway'),
                 'type' => 'text',
